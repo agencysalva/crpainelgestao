@@ -238,7 +238,6 @@ function writeDatabase(data: any) {
   }
 }
 
-async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -1817,33 +1816,26 @@ Serviço certificado com 90 (noventa) dias de garantia técnica CR Serviços Ger
     }
   });
 
-  // ===================== VITE MIDDLEWARE / SPA FALLBACK =====================
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
+// ===================== VITE MIDDLEWARE / SPA FALLBACK =====================
+if (process.env.NODE_ENV === "production") {
+  const distPath = path.join(process.cwd(), "dist");
+  app.use(express.static(distPath));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+} else {
+  void createViteServer({
+    server: { middlewareMode: true },
+    appType: "spa",
+  }).then((vite) => {
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  return app;
-}
-
-void startServer().then(() => {
-  if (process.env.NODE_ENV !== 'production') {
     app.listen(3000, () => {
-      console.log('Servidor local a correr na porta 3000');
+      console.log("Servidor local a correr na porta 3000");
     });
-  }
-}).catch((error: unknown) => {
-  console.error("Server initialization failed:", error);
-  process.exitCode = 1;
-});
+  }).catch((error: unknown) => {
+    console.error("Vite initialization failed:", error);
+    process.exitCode = 1;
+  });
+}
 
 export default app;
