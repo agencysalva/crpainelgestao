@@ -11,7 +11,6 @@ import { createAuditLog } from "./server/services/auditService";
 import { validateStateTransition, mapTechnicianStatusFromOrder, STATUS_TITLES } from "./server/services/workOrderService";
 import { syncWorkOrderFinancialTransaction } from "./server/services/financialService";
 
-const PORT = 3000;
 function requireEnvironmentVariable(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -1833,16 +1832,16 @@ Serviço certificado com 90 (noventa) dias de garantia técnica CR Serviços Ger
     });
   }
 
-  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`CR Serviços Gerais Server running on http://0.0.0.0:${PORT}`);
-    });
-  }
-
   return app;
 }
 
-void startServer().catch((error: unknown) => {
+void startServer().then(() => {
+  if (process.env.NODE_ENV !== 'production') {
+    app.listen(3000, () => {
+      console.log('Servidor local a correr na porta 3000');
+    });
+  }
+}).catch((error: unknown) => {
   console.error("Server initialization failed:", error);
   process.exitCode = 1;
 });
