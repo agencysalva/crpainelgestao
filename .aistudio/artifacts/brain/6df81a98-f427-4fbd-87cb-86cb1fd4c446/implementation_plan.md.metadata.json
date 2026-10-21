@@ -1,0 +1,6 @@
+{
+  "summary":  "Plano de implementação para correção de contraste e visibilidade no modo escuro, persistência definitiva de foto de perfil no Firebase, e sincronização em tempo real via Firestore entre o aplicativo do funcionário e o painel do administrador.",
+  "updatedAt":  "2026-10-21T01:22:05.901232781Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

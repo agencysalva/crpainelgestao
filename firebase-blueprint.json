@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user or technician account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "phone": { "type": "string" },
+        "avatar": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "role", "email"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Client or company receiving services",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "cnpj": { "type": "string" },
+        "cpf": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "WorkOrder": {
+      "title": "WorkOrder",
+      "description": "Service work order (Ordem de Serviço)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "customerId": { "type": "string" },
+        "technicianId": { "type": "string" },
+        "scheduledDate": { "type": "string" },
+        "scheduledTime": { "type": "string" },
+        "problemDescription": { "type": "string" },
+        "value": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "code", "customerId"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "Service quote or budget (Orçamento)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "customerId": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "code", "customerId"]
+    },
+    "FinancialTransaction": {
+      "title": "FinancialTransaction",
+      "description": "Income or expense record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "type", "amount", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer catalog"
+    },
+    "/locations/{locationId}": {
+      "schema": "Location",
+      "description": "Service locations per customer"
+    },
+    "/technicians/{technicianId}": {
+      "schema": "Technician",
+      "description": "Technicians roster"
+    },
+    "/services/{serviceId}": {
+      "schema": "Service",
+      "description": "Services catalog"
+    },
+    "/quotes/{quoteId}": {
+      "schema": "Quote",
+      "description": "Service quotes"
+    },
+    "/workOrders/{workOrderId}": {
+      "schema": "WorkOrder",
+      "description": "Service work orders"
+    },
+    "/financialTransactions/{transactionId}": {
+      "schema": "FinancialTransaction",
+      "description": "Financial ledger transactions"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "System notifications"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Audit trails"
+    },
+    "/settings/company": {
+      "schema": "Settings",
+      "description": "Company settings"
+    }
+  }
+}
