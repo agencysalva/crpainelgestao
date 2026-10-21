@@ -5,11 +5,11 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-import { requireAuth, parseUserIdFromToken, AuthenticatedRequest } from "./server/middlewares/authMiddleware";
-import { requireAdmin, requireRole } from "./server/middlewares/rbacMiddleware";
-import { createAuditLog } from "./server/services/auditService";
-import { validateStateTransition, mapTechnicianStatusFromOrder, STATUS_TITLES } from "./server/services/workOrderService";
-import { syncWorkOrderFinancialTransaction } from "./server/services/financialService";
+import { requireAuth, parseUserIdFromToken, AuthenticatedRequest } from "./server/middlewares/authMiddleware.js";
+import { requireAdmin, requireRole } from "./server/middlewares/rbacMiddleware.js";
+import { createAuditLog } from "./server/services/auditService.js";
+import { validateStateTransition, mapTechnicianStatusFromOrder, STATUS_TITLES } from "./server/services/workOrderService.js";
+import { syncWorkOrderFinancialTransaction } from "./server/services/financialService.js";
 
 function requireEnvironmentVariable(name: string): string {
   const value = process.env[name];
