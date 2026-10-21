@@ -5,7 +5,6 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-import firebaseConfig from "./firebase-applet-config.json";
 import { requireAuth, parseUserIdFromToken, AuthenticatedRequest } from "./server/middlewares/authMiddleware";
 import { requireAdmin, requireRole } from "./server/middlewares/rbacMiddleware";
 import { createAuditLog } from "./server/services/auditService";
@@ -13,6 +12,24 @@ import { validateStateTransition, mapTechnicianStatusFromOrder, STATUS_TITLES } 
 import { syncWorkOrderFinancialTransaction } from "./server/services/financialService";
 
 const PORT = 3000;
+function requireEnvironmentVariable(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const firebaseConfig = {
+  apiKey: requireEnvironmentVariable("VITE_FIREBASE_API_KEY"),
+  appId: requireEnvironmentVariable("VITE_FIREBASE_APP_ID"),
+  authDomain: requireEnvironmentVariable("VITE_FIREBASE_AUTH_DOMAIN"),
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID,
+  messagingSenderId: requireEnvironmentVariable("VITE_FIREBASE_MESSAGING_SENDER_ID"),
+  projectId: requireEnvironmentVariable("VITE_FIREBASE_PROJECT_ID"),
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  firestoreDatabaseId: requireEnvironmentVariable("VITE_FIREBASE_FIRESTORE_DATABASE_ID"),
+};
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_FILE = path.join(DATA_DIR, "database.json");
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
@@ -38,6 +55,8 @@ if (!fs.existsSync(DATA_DIR)) {
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
+
+const app = express();
 
 // Initial seed data generator: Zeroed for production start
 function getInitialData(): any {
@@ -221,8 +240,6 @@ function writeDatabase(data: any) {
 }
 
 async function startServer() {
-  const app = express();
-
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -239,77 +256,83 @@ async function startServer() {
 
   // ===================== AUTH ROUTES =====================
   app.post("/api/auth/login", (req, res) => {
-    const { email, username, password } = req.body;
-    const db = readDatabase();
-    const query = (email || username || "").toLowerCase().trim();
-    const cleanPass = (password || "").trim();
+    try {
+      const { email, username, password } = req.body;
+      const db = readDatabase();
+      const query = (email || username || "").toLowerCase().trim();
+      const cleanPass = (password || "").trim();
 
-    let user = db.users.find((u: any) => {
-      const uEmail = (u.email || "").toLowerCase().trim();
-      const uUsername = (u.username || uEmail.split("@")[0] || "").toLowerCase().trim();
-      const uName = (u.name || "").toLowerCase().trim();
-      return uEmail === query || uUsername === query || uName === query;
-    });
+      let user = db.users.find((u: any) => {
+        const uEmail = (u.email || "").toLowerCase().trim();
+        const uUsername = (u.username || uEmail.split("@")[0] || "").toLowerCase().trim();
+        const uName = (u.name || "").toLowerCase().trim();
+        return uEmail === query || uUsername === query || uName === query;
+      });
 
-    // Fallbacks inteligentes para troca rápida de papel e credenciais de demonstração
-    if (!user) {
-      if (query === "cristiano" || query === "admin" || query === "administrador") {
-        user = db.users.find((u: any) => u.role === "admin") || db.users[0];
-      } else if (query === "gerencia" || query === "manager" || query === "eduardo" || query === "roberta") {
-        user = db.users.find((u: any) => u.role === "manager");
-      } else if (query === "func01" || query === "funcionario" || query === "employee" || query === "juliana") {
-        user = db.users.find((u: any) => u.role === "employee");
-      } else if (query === "marcos" || query === "tecnico" || query === "technician") {
-        user = db.users.find((u: any) => u.role === "technician") || db.users.find((u: any) => u.role === "employee");
+      // Fallbacks inteligentes para troca rápida de papel e credenciais de demonstração
+      if (!user) {
+        if (query === "cristiano" || query === "admin" || query === "administrador") {
+          user = db.users.find((u: any) => u.role === "admin") || db.users[0];
+        } else if (query === "gerencia" || query === "manager" || query === "eduardo" || query === "roberta") {
+          user = db.users.find((u: any) => u.role === "manager");
+        } else if (query === "func01" || query === "funcionario" || query === "employee" || query === "juliana") {
+          user = db.users.find((u: any) => u.role === "employee");
+        } else if (query === "marcos" || query === "tecnico" || query === "technician") {
+          user = db.users.find((u: any) => u.role === "technician") || db.users.find((u: any) => u.role === "employee");
+        }
       }
-    }
 
-    if (!user && (query === "admin" || query === "manager" || query === "employee" || query === "technician")) {
-      user = db.users.find((u: any) => u.role === query);
-    }
+      if (!user && (query === "admin" || query === "manager" || query === "employee" || query === "technician")) {
+        user = db.users.find((u: any) => u.role === query);
+      }
 
-    // Se ainda assim o perfil não estiver no banco, instancia dinamicamente do initialUsers
-    if (!user) {
-      const initialUsers = getInitialData().users;
-      const matched = initialUsers.find(
-        (u: any) =>
-          u.username.toLowerCase() === query ||
-          u.role.toLowerCase() === query ||
-          u.email.toLowerCase() === query
-      );
-      if (matched) {
-        user = { ...matched };
-        db.users.push(user);
+      // Se ainda assim o perfil não estiver no banco, instancia dinamicamente do initialUsers
+      if (!user) {
+        const initialUsers = getInitialData().users;
+        const matched = initialUsers.find(
+          (u: any) =>
+            u.username.toLowerCase() === query ||
+            u.role.toLowerCase() === query ||
+            u.email.toLowerCase() === query
+        );
+        if (matched) {
+          user = { ...matched };
+          db.users.push(user);
+          writeDatabase(db);
+        }
+      }
+
+      // Verificação de senha flexível e tolerante a maiúsculas/minúsculas e senhas mestras
+      const isPasswordValid =
+        user &&
+        (user.password === cleanPass ||
+         cleanPass.toLowerCase() === (user.password || "").toLowerCase() ||
+         cleanPass === "Cristiano2026" ||
+         cleanPass.toLowerCase() === "cristiano2026" ||
+         cleanPass === "123456" ||
+         cleanPass === "admin" ||
+         cleanPass === "1234" ||
+         user.password === "123456" ||
+         user.password === "1234" ||
+         user.password === "Cristiano2026" ||
+         !cleanPass);
+
+      if (!user || !isPasswordValid) {
+        return res.status(401).json({ error: "Usuário ou senha incorretos." });
+      }
+
+      if (!user.active) {
+        user.active = true;
         writeDatabase(db);
       }
+
+      const { password: _, ...safeUser } = user;
+      res.json({ user: safeUser, token: `cr-token-${user.id}-${Date.now()}` });
+    } catch (error: unknown) {
+      console.error("Erro detalhado no login:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
-
-    // Verificação de senha flexível e tolerante a maiúsculas/minúsculas e senhas mestras
-    const isPasswordValid =
-      user &&
-      (user.password === cleanPass ||
-       cleanPass.toLowerCase() === (user.password || "").toLowerCase() ||
-       cleanPass === "Cristiano2026" ||
-       cleanPass.toLowerCase() === "cristiano2026" ||
-       cleanPass === "123456" ||
-       cleanPass === "admin" ||
-       cleanPass === "1234" ||
-       user.password === "123456" ||
-       user.password === "1234" ||
-       user.password === "Cristiano2026" ||
-       !cleanPass);
-
-    if (!user || !isPasswordValid) {
-      return res.status(401).json({ error: "Usuário ou senha incorretos." });
-    }
-
-    if (!user.active) {
-      user.active = true;
-      writeDatabase(db);
-    }
-
-    const { password: _, ...safeUser } = user;
-    res.json({ user: safeUser, token: `cr-token-${user.id}-${Date.now()}` });
   });
 
   // ===================== AUTO-CADASTRO (REGISTER) =====================
@@ -1819,5 +1842,9 @@ Serviço certificado com 90 (noventa) dias de garantia técnica CR Serviços Ger
   return app;
 }
 
-const appPromise = startServer();
-export default appPromise;
+void startServer().catch((error: unknown) => {
+  console.error("Server initialization failed:", error);
+  process.exitCode = 1;
+});
+
+export default app;
